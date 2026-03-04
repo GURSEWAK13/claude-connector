@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude-connector</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <h1>claude-connector</h1>
+  <span>node: <strong id="node-name">—</strong></span>
+  <span>proxy <strong id="proxy-port">:8765</strong></span>
+  <span id="conn-status" class="status-pill pill-yellow">connecting…</span>
+</header>
+
+<div class="main">
+
+  <!-- Left sidebar: Sessions + Peers + Fallback -->
+  <div class="panel" style="grid-row: 1;">
+    <div class="panel-title">Sessions</div>
+    <div class="panel-body" id="sessions-list">
+      <div style="color:#8b949e; font-size:12px;">Loading…</div>
+    </div>
+    <div class="panel-title">Peers</div>
+    <div class="panel-body" id="peers-list">
+      <div style="color:#8b949e; font-size:12px;">Discovering…</div>
+    </div>
+    <div class="panel-title">Fallback</div>
+    <div class="panel-body" id="fallbacks-list">
+      <div style="color:#8b949e; font-size:12px;">Checking…</div>
+    </div>
+  </div>
+
+  <!-- Right: D3 graph -->
+  <div class="panel" id="graph-panel">
+    <div class="panel-title">Peer Network</div>
+    <div id="graph-canvas" style="flex:1; position:relative;"></div>
+  </div>
+
+  <!-- Bottom: Request log -->
+  <div class="panel" id="log-panel">
+    <div class="panel-title">Request Log</div>
+    <div class="panel-body" id="log-entries"></div>
+  </div>
+
+</div>
+
+<script src="d3.v7.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

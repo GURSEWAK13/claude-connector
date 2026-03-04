@@ -1,0 +1,185 @@
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-dim: #8b949e;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --red: #f85149;
+  --blue: #58a6ff;
+  --purple: #bc8cff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Cascadia Code', 'Fira Code', 'Menlo', monospace;
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+header h1 {
+  font-size: 16px;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.status-pill {
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pill-green { background: rgba(63, 185, 80, 0.15); color: var(--green); border: 1px solid rgba(63, 185, 80, 0.3); }
+.pill-yellow { background: rgba(210, 153, 34, 0.15); color: var(--yellow); border: 1px solid rgba(210, 153, 34, 0.3); }
+.pill-red { background: rgba(248, 81, 73, 0.15); color: var(--red); border: 1px solid rgba(248, 81, 73, 0.3); }
+
+.main {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 1fr 200px;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.panel {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 10px 14px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-body { padding: 10px 14px; overflow-y: auto; flex: 1; }
+
+/* Sessions */
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+}
+.session-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.dot-red { background: var(--red); }
+.dot-gray { background: var(--border); }
+
+.session-name { flex: 1; color: var(--text); }
+.session-state { font-size: 11px; color: var(--text-dim); text-align: right; }
+.session-cooldown { color: var(--yellow); }
+
+/* Graph area */
+#graph-panel {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+}
+
+#graph-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Request log */
+#log-panel {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  border-right: none;
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 70px 160px 50px 60px 1fr;
+  gap: 10px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.3);
+  font-size: 12px;
+  align-items: center;
+}
+.log-time { color: var(--text-dim); }
+.log-via-local { color: var(--green); }
+.log-via-peer { color: var(--blue); }
+.log-via-fallback { color: var(--yellow); }
+.log-via-error { color: var(--red); }
+.log-status-ok { color: var(--green); }
+.log-status-err { color: var(--red); }
+.log-duration { color: var(--text-dim); }
+.log-model { color: var(--purple); font-size: 11px; }
+
+/* Peers sidebar section */
+.peer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.peer-name { flex: 1; font-weight: 600; }
+.peer-sessions { color: var(--text-dim); font-size: 11px; }
+
+/* Fallback */
+.fallback-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Animation: pulse on edge during request routing */
+@keyframes pulse-edge {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+.edge-active { animation: pulse-edge 0.8s ease-in-out 3; }
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+}
