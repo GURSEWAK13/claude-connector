@@ -20,10 +20,12 @@ When you're working in a small team with Claude.ai Pro/Team subscriptions, each 
 
 **claude-connector** solves this by running a local proxy on every machine. It automatically:
 
-1. Uses your own Claude session when you have capacity
-2. Routes to a teammate's machine when you're rate-limited
+1. Tries each of your local session tokens in turn — failover is transparent, the client never sees a 429
+2. Routes to a teammate's machine when all your local sessions are rate-limited
 3. Falls back to Ollama or LM Studio when the whole team is busy
 4. Returns a `429` only when **everyone** is out of capacity
+
+Because the Anthropic API is stateless (every request already carries the full conversation history), retrying with a different session token requires no special buffering — the exact same request body is forwarded immediately.
 
 Every machine on the LAN discovers each other automatically via **mDNS** — zero configuration, no central server.
 
@@ -42,7 +44,7 @@ Your App / Claude CLI
     ┌─────▼──────────────────────────────────┐
     │           Routing Logic                │
     │                                        │
-    │  1. Local session available?  ──► Use it
+    │  1. Try each local session     ──► Failover on 429
     │  2. Peer available on LAN?    ──► Forward
     │  3. Ollama / LM Studio up?    ──► Fallback
     │  4. Nothing available?        ──► 429
@@ -64,10 +66,11 @@ Your App / Claude CLI
 |---|---|
 | **Anthropic-compatible proxy** | Drop-in replacement — point any client to `:8765` |
 | **Automatic LAN discovery** | mDNS (`_claude-connector._tcp`) — peers appear within ~5s |
-| **Smart routing** | Local → Peer → Ollama/LM Studio → 429 |
+| **Smart routing** | Local (all sessions) → Peer → Ollama/LM Studio → 429 |
+| **Transparent multi-session failover** | When one local session hits a 429, the proxy instantly retries with the next available session — the client never sees the error |
 | **Rate-limit awareness** | Detects `429` responses, backs off exponentially (60s → 120s → 240s → 600s) |
 | **Two session types** | `anthropic_api` (sk-ant-... key) and `claude_web` (session cookie) |
-| **TUI dashboard** | Real-time Bubble Tea terminal UI with ASCII network graph |
+| **TUI dashboard** | Real-time Bubble Tea terminal UI with ASCII network graph; failover retries shown as `(+N retry)` in the request log |
 | **Web dashboard** | D3.js force graph at `localhost:8766` with live WebSocket updates |
 | **Gossip protocol** | Peers share status every 5s so routing decisions are always fresh |
 | **HMAC-SHA256 auth** | All peer-to-peer traffic is signed — replay attacks blocked |
@@ -159,8 +162,9 @@ client = anthropic.Anthropic(base_url="http://localhost:8765", api_key="any-valu
 │                             ├────────────────────────────────────────────────┤
 │                             │ REQUEST LOG                                     │
 │                             │ 14:32 → local        200  1.2s  claude-3-5    │
-│                             │ 14:32 → peer:bob     200  2.1s  claude-3-5    │
-│                             │ 14:32 → ollama       200  3.4s  llama3.2      │
+│                             │ 14:33 → local (+1 retry) 200 2.1s claude-3-5  │
+│                             │ 14:34 → peer:bob     200  3.4s  claude-3-5    │
+│                             │ 14:35 → ollama       200  1.8s  llama3.2      │
 ├─────────────────────────────┴────────────────────────────────────────────────┤
 │ [q]uit  [a]dd-session  [d]isable  [w]eb-dashboard  [?]help                  │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -223,7 +227,9 @@ lmstudio_enabled      = true
 lmstudio_url          = "http://localhost:1234"
 
 # ── Sessions ──────────────────────────────────────────────────────────────────
-# You can add multiple sessions — they are load-balanced and failed-over
+# Add multiple sessions for automatic failover.
+# When session-1 hits a rate limit, the proxy immediately retries with session-2
+# (and so on) before falling through to peers or fallback backends.
 
 [[sessions.session]]
 id          = "personal"
@@ -489,7 +495,7 @@ pkill -f "claude-connector start"
 
 **Requests returning 429 immediately**
 - No session keys are configured — add one to `config.toml`
-- All sessions are in `COOLING_DOWN` state — wait for backoff to expire (check TUI or `/api/sessions`)
+- All sessions are in `COOLING_DOWN` state — wait for backoff to expire (check TUI or `/api/sessions`). With multiple sessions configured, the proxy will automatically try each one before falling through to peers.
 - Ollama/LM Studio fallback not running — start one or configure it
 
 **TUI looks broken / garbled**

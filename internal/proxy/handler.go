@@ -17,11 +17,12 @@ type MessagesHandler struct {
 
 // RequestEvent records routing outcomes for the TUI/Web dashboard.
 type RequestEvent struct {
-	Via      string
-	Model    string
-	Status   int
-	Duration string
-	Error    string
+	Via           string
+	Model         string
+	Status        int
+	Duration      string
+	Error         string
+	FailoverCount int
 }
 
 func NewMessagesHandler(router *Router, events chan<- RequestEvent) *MessagesHandler {
@@ -54,6 +55,7 @@ func (h *MessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		event.Via = result.Via
 		event.Duration = result.Duration.Round(10 * 1e6).String()
 		event.Status = 200
+		event.FailoverCount = result.FailoverCount
 	}
 	if routeErr != nil {
 		event.Error = routeErr.Error()

@@ -100,6 +100,22 @@ func (p *Pool) Acquire() *Session {
 	return nil
 }
 
+// AcquireExcluding returns the first available session not in the excluded set.
+func (p *Pool) AcquireExcluding(excluded map[string]bool) *Session {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	for _, s := range p.sessions {
+		if excluded[s.ID] {
+			continue
+		}
+		if s.Acquire() {
+			return s
+		}
+	}
+	return nil
+}
+
 // Snapshots returns snapshots of all sessions.
 func (p *Pool) Snapshots() []Snapshot {
 	p.mu.RLock()

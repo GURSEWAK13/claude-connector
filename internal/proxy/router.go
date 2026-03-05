@@ -16,9 +16,11 @@ import (
 
 // RouteResult describes how a request was routed.
 type RouteResult struct {
-	Via      string // "local", "peer:<id>", "ollama", "lmstudio"
-	Duration time.Duration
-	Model    string
+	Via           string // "local", "peer:<id>", "ollama", "lmstudio"
+	Duration      time.Duration
+	Model         string
+	SessionID     string // which session ultimately served the request
+	FailoverCount int    // how many sessions were tried before success (0 = first try)
 }
 
 // Router implements the local→peer→fallback routing cascade.
@@ -41,14 +43,21 @@ func NewRouter(pool *session.Pool, registry *peer.Registry, fb *fallback.Manager
 func (r *Router) RouteRequest(ctx context.Context, w http.ResponseWriter, reqBody []byte, req *session.AnthropicRequest) (*RouteResult, error) {
 	start := time.Now()
 
-	// 1. Try local session pool
-	if sess := r.pool.Acquire(); sess != nil {
+	// 1. Try all local sessions — retry on 429 with next available session
+	tried := make(map[string]bool)
+	for {
+		sess := r.pool.AcquireExcluding(tried)
+		if sess == nil {
+			break
+		}
+		tried[sess.ID] = true
 		result, err := r.executeLocal(ctx, w, sess, reqBody, req)
 		if err == nil {
 			result.Duration = time.Since(start)
+			result.FailoverCount = len(tried) - 1
 			return result, nil
 		}
-		// Error handled inside executeLocal (session released/marked)
+		// err means rate-limited or error — try next local session
 	}
 
 	// 2. Try available peers
@@ -73,7 +82,7 @@ func (r *Router) RouteRequest(ctx context.Context, w http.ResponseWriter, reqBod
 }
 
 func (r *Router) executeLocal(ctx context.Context, w http.ResponseWriter, sess *session.Session, rawBody []byte, req *session.AnthropicRequest) (*RouteResult, error) {
-	result := &RouteResult{Via: "local", Model: req.Model}
+	result := &RouteResult{Via: "local", Model: req.Model, SessionID: sess.ID}
 
 	defer func() {
 		// session.Release() is called after response completes
